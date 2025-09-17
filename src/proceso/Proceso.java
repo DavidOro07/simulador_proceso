@@ -1,16 +1,17 @@
 package proceso;
 
 public class Proceso {
-    private static int contador = 1;
-    private int pid;
-    private String nombre;
-    private int tiempoCPU;
-    private int tiempoRestante;
-    private int llegada;
-    private int quantum;
+    private static int contadorPid = 1;
+
+    private final int pid;
+    private final String nombre;
+    private final int tiempoCPU; // tiempo total requerido
+    private int tiempoRestante;  // tiempo que queda
+    private final int llegada;   // instante de llegada (unidades)
+    private final int quantum;   // usado solo si aplica
 
     public Proceso(String nombre, int tiempoCPU, int llegada, int quantum) {
-        this.pid = contador++;
+        this.pid = contadorPid++;
         this.nombre = nombre;
         this.tiempoCPU = tiempoCPU;
         this.tiempoRestante = tiempoCPU;
@@ -28,6 +29,6 @@ public class Proceso {
 
     @Override
     public String toString() {
-        return "PID:" + pid + " " + nombre + " (Restante: " + tiempoRestante + ")";
+        return String.format("P%d-%s (R:%d)", pid, nombre, tiempoRestante);
     }
 }

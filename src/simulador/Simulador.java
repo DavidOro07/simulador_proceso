@@ -1,56 +1,118 @@
 package simulador;
 
-import planificador.*;
 import proceso.Proceso;
+import planificacion.*;
 
-import java.util.*;
+import javax.swing.*;
+import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.List;
 
+/**
+ * Simulador: controla el reloj, las llegadas, la cola de listos, ejecución y el historial.
+ * Usa javax.swing.Timer (sin importar java.util.Timer).
+ */
 public class Simulador {
-    private List<Proceso> procesos;
-    private List<Proceso> colaListos;
-    private List<Proceso> historial;
-    private Planificador planificador;
-    private Proceso enEjecucion;
-    private int tiempo;
+    private final List<Proceso> procesos = new ArrayList<>(); // todos los procesos creados (para llegada)
+    private final List<Proceso> colaListos = new ArrayList<>(); // procesos listos para ejecutar
+    private final List<Proceso> historial = new ArrayList<>(); // procesos terminados
+    private Proceso enEjecucion = null;
 
-    public Simulador(Planificador planificador) {
-        this.planificador = planificador;
-        this.procesos = new ArrayList<>();
-        this.colaListos = new ArrayList<>();
-        this.historial = new ArrayList<>();
-        this.tiempo = 0;
+    private Planificador planificador;
+    private javax.swing.Timer timer; // javax.swing.Timer
+    private int tiempo = 0; // tiempo en unidades
+    private final VentanaPrincipal ventana;
+    private int milisegundosPorUnidad = 1000; // configurable
+
+    // Para Round Robin necesitamos pasar quantum al planificador cuando se crea
+    public Simulador(VentanaPrincipal ventana) {
+        this.ventana = ventana;
     }
+
+    public void setMilisegundosPorUnidad(int ms) { this.milisegundosPorUnidad = ms; }
 
     public void agregarProceso(Proceso p) {
         procesos.add(p);
     }
 
-    public void tick() {
-        // Llegan procesos
-        for (Proceso p : procesos) {
-            if (p.getLlegada() == tiempo) {
-                colaListos.add(p);
-            }
+    public List<Proceso> getColaListos() { return colaListos; }
+    public Proceso getEnEjecucion() { return enEjecucion; }
+    public List<Proceso> getHistorial() { return historial; }
+    public int getTiempo() { return tiempo; }
+
+    public void configurarPlanificador(String algoritmo, int quantum) {
+        switch (algoritmo) {
+            case "FCFS" -> planificador = new PlanificadorFCFS();
+            case "SJF" -> planificador = new PlanificadorSJF();
+            case "SRTF" -> planificador = new PlanificadorSRTF();
+            case "Round Robin" -> planificador = new PlanificadorRR(Math.max(1, quantum));
+            default -> planificador = new PlanificadorFCFS();
         }
-
-        // Selección de proceso
-        enEjecucion = planificador.seleccionarSiguiente(colaListos, tiempo, enEjecucion);
-
-        // Ejecutar
-        if (enEjecucion != null) {
-            enEjecucion.setTiempoRestante(enEjecucion.getTiempoRestante() - 1);
-            if (enEjecucion.getTiempoRestante() <= 0) {
-                historial.add(enEjecucion);
-                enEjecucion = null;
-            }
-        }
-
-        tiempo++;
     }
 
-    public List<Proceso> getColaListos() { return colaListos; }
-    public List<Proceso> getHistorial() { return historial; }
-    public Proceso getEnEjecucion() { return enEjecucion; }
-    public int getTiempo() { return tiempo; }
-}
+    public void iniciar() {
+        if (planificador == null) planificador = new PlanificadorFCFS();
+        if (timer != null && timer.isRunning()) timer.stop();
 
+        timer = new javax.swing.Timer(milisegundosPorUnidad, e -> tick());
+        timer.start();
+    }
+
+    public void detener() {
+        if (timer != null) timer.stop();
+    }
+
+    private void tick() {
+        // 1) agregar procesos que llegan en este instante
+        for (Iterator<Proceso> it = procesos.iterator(); it.hasNext(); ) {
+            Proceso p = it.next();
+            if (p.getLlegada() == tiempo) {
+                colaListos.add(p);
+                ventana.agregarFilaCola(p); // actualiza tabla inmediatamente cuando llega
+                // no remueve de procesos: lo dejamos para posibles usos; si no quieres mantenerlo, podrías removerlo.
+            }
+        }
+
+        // 2) seleccionar siguiente proceso (planificador puede devolver enEjecucion o uno nuevo)
+        Proceso seleccionado = planificador.seleccionarSiguiente(colaListos, tiempo, enEjecucion);
+
+        // Si planificador devolvió distinto al que estaba, manejar preempción / retorno a cola
+        if (seleccionado != null && enEjecucion != null && seleccionado != enEjecucion) {
+            // si el proceso anterior aún tiene tiempo restante lo devolvemos a cola (excepto SRTF ya lo habría gestionado)
+            if (enEjecucion.getTiempoRestante() > 0) {
+                colaListos.add(enEjecucion);
+                ventana.agregarFilaCola(enEjecucion);
+            }
+            enEjecucion = seleccionado;
+        } else if (seleccionado == null && enEjecucion == null) {
+            // CPU libre y no hay nada que ejecutar
+            enEjecucion = null;
+        } else {
+            enEjecucion = seleccionado;
+        }
+
+        // 3) ejecutar 1 unidad si hay proceso
+        if (enEjecucion != null) {
+            int rem = enEjecucion.getTiempoRestante() - 1;
+            enEjecucion.setTiempoRestante(Math.max(0, rem));
+            ventana.actualizarProcesoEnCPU(enEjecucion);
+
+            if (enEjecucion.getTiempoRestante() == 0) {
+                // termino
+                historial.add(enEjecucion);
+                ventana.agregarFilaHistorial(enEjecucion, tiempo + 1); // finish time = tiempo+1
+                enEjecucion = null;
+                ventana.limpiarCPU();
+            }
+        } else {
+            ventana.limpiarCPU();
+        }
+
+        // 4) actualizar tabla de cola (remover procesos con tiempo 0 si quedaron)
+        ventana.refrescarTablaCola(colaListos);
+
+        // 5) incrementar tiempo y actualizar label
+        tiempo++;
+        ventana.actualizarTiempo(tiempo);
+    }
+}
