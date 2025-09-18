@@ -1,25 +1,21 @@
 package simulador;
 
+import java.awt.*;
+import javax.swing.*;
+import javax.swing.table.DefaultTableCellRenderer;
+import javax.swing.table.DefaultTableModel;
 import proceso.Proceso;
 
-import javax.swing.*;
-import javax.swing.table.DefaultTableModel;
-import java.awt.*;
-
 /**
- * Ventana principal con diseño más limpio y usable.
- * - Formulario en la izquierda
- * - Controles arriba/derecha
- * - Tablas centrales para Cola y Historial
- * - Panel inferior para CPU (proceso en ejecución) y tiempo
+ * Ventana principal con diseño visual mejorado.
  */
 public class VentanaPrincipal extends JFrame {
     private final JTextField txtNombre = new JTextField();
-    private final JTextField txtCPU = new JTextField();
-    private final JTextField txtLlegada = new JTextField();
-    private final JTextField txtQuantum = new JTextField();
+    private final JSpinner spinnerCPU = new JSpinner(new SpinnerNumberModel(1, 1, 1000, 1));
+    private final JSpinner spinnerLlegada = new JSpinner(new SpinnerNumberModel(0, 0, 1000, 1));
+    private final JSpinner spinnerQuantum = new JSpinner(new SpinnerNumberModel(1, 1, 1000, 1));
     private final JComboBox<String> comboAlgoritmo = new JComboBox<>(new String[]{"FCFS","SJF","SRTF","Round Robin"});
-    private final JTextField txtVelocidad = new JTextField("1000"); // ms por unidad
+    private final JSpinner spinnerVelocidad = new JSpinner(new SpinnerNumberModel(1000, 50, 5000, 50));
 
     private final DefaultTableModel modeloCola = new DefaultTableModel(new String[]{"PID","Nombre","CPU","Llegada","Restante"}, 0);
     private final JTable tablaCola = new JTable(modeloCola);
@@ -37,33 +33,36 @@ public class VentanaPrincipal extends JFrame {
         setSize(1000, 620);
         setLocationRelativeTo(null);
         setDefaultCloseOperation(EXIT_ON_CLOSE);
-
         setLayout(new BorderLayout(8,8));
 
-        // Panel izquierdo: formulario y botones
+        // ================= Panel izquierdo =================
         JPanel panelLeft = new JPanel(new GridBagLayout());
-        panelLeft.setBorder(BorderFactory.createTitledBorder("Crear Proceso / Configuración"));
+        panelLeft.setBackground(new Color(245,245,245));
+        panelLeft.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createTitledBorder("Crear Proceso / Configuración"),
+                BorderFactory.createEmptyBorder(10,10,10,10)
+        ));
         GridBagConstraints c = new GridBagConstraints();
         c.insets = new Insets(6,6,6,6);
         c.fill = GridBagConstraints.HORIZONTAL;
 
-        c.gridx = 0; c.gridy = 0; panelLeft.add(new JLabel("Nombre:"), c);
-        c.gridx = 1; panelLeft.add(txtNombre, c);
+        c.gridx=0; c.gridy=0; panelLeft.add(new JLabel("Nombre:"), c);
+        c.gridx=1; panelLeft.add(txtNombre, c);
 
-        c.gridx = 0; c.gridy = 1; panelLeft.add(new JLabel("Tiempo CPU (u):"), c);
-        c.gridx = 1; panelLeft.add(txtCPU, c);
+        c.gridx=0; c.gridy=1; panelLeft.add(new JLabel("Tiempo CPU (u):"), c);
+        c.gridx=1; panelLeft.add(spinnerCPU, c);
 
-        c.gridx = 0; c.gridy = 2; panelLeft.add(new JLabel("Llegada (u):"), c);
-        c.gridx = 1; panelLeft.add(txtLlegada, c);
+        c.gridx=0; c.gridy=2; panelLeft.add(new JLabel("Llegada (u):"), c);
+        c.gridx=1; panelLeft.add(spinnerLlegada, c);
 
-        c.gridx = 0; c.gridy = 3; panelLeft.add(new JLabel("Quantum (RR):"), c);
-        c.gridx = 1; panelLeft.add(txtQuantum, c);
+        c.gridx=0; c.gridy=3; panelLeft.add(new JLabel("Quantum (RR):"), c);
+        c.gridx=1; panelLeft.add(spinnerQuantum, c);
 
-        c.gridx = 0; c.gridy = 4; panelLeft.add(new JLabel("Algoritmo:"), c);
-        c.gridx = 1; panelLeft.add(comboAlgoritmo, c);
+        c.gridx=0; c.gridy=4; panelLeft.add(new JLabel("Algoritmo:"), c);
+        c.gridx=1; panelLeft.add(comboAlgoritmo, c);
 
-        c.gridx = 0; c.gridy = 5; panelLeft.add(new JLabel("Velocidad ms/unidad:"), c);
-        c.gridx = 1; panelLeft.add(txtVelocidad, c);
+        c.gridx=0; c.gridy=5; panelLeft.add(new JLabel("Velocidad ms/unidad:"), c);
+        c.gridx=1; panelLeft.add(spinnerVelocidad, c);
 
         JButton btnAgregar = new JButton("Agregar Proceso");
         JButton btnIniciar = new JButton("Iniciar Simulación");
@@ -71,97 +70,122 @@ public class VentanaPrincipal extends JFrame {
         JButton btnReiniciar = new JButton("Reiniciar");
 
         JPanel panelBtns = new JPanel(new GridLayout(4,1,6,6));
+        panelBtns.setBorder(BorderFactory.createEmptyBorder(10,0,0,0));
         panelBtns.add(btnAgregar); panelBtns.add(btnIniciar); panelBtns.add(btnDetener); panelBtns.add(btnReiniciar);
 
-        c.gridx = 0; c.gridy = 6; c.gridwidth = 2; panelLeft.add(panelBtns, c);
+        c.gridx=0; c.gridy=6; c.gridwidth=2; panelLeft.add(panelBtns, c);
 
         add(panelLeft, BorderLayout.WEST);
 
-        // Panel central: tablas
+        // ================= Panel central =================
         JPanel panelCenter = new JPanel(new BorderLayout(6,6));
+        panelCenter.setBackground(new Color(250,250,250));
         panelCenter.setBorder(BorderFactory.createTitledBorder("Procesos"));
 
         JPanel tablas = new JPanel(new GridLayout(2,1,6,6));
         tablas.add(new JScrollPane(tablaCola));
         tablas.add(new JScrollPane(tablaHistorial));
         panelCenter.add(tablas, BorderLayout.CENTER);
-
         add(panelCenter, BorderLayout.CENTER);
 
-        // Panel inferior: CPU y tiempo
+        // ================= Panel inferior =================
         JPanel panelBottom = new JPanel(new BorderLayout(6,6));
-        lblCPU.setFont(new Font("SansSerif", Font.BOLD, 18));
+        panelBottom.setBackground(new Color(230,230,250));
+        lblCPU.setFont(new Font("SansSerif", Font.BOLD, 20));
+        lblCPU.setForeground(new Color(34,139,34)); // verde libre
         panelBottom.add(lblCPU, BorderLayout.CENTER);
+        lblTiempo.setFont(new Font("SansSerif", Font.BOLD, 16));
         panelBottom.add(lblTiempo, BorderLayout.EAST);
-
         add(panelBottom, BorderLayout.SOUTH);
 
-        // Inicializar simulador (sin iniciar timer todavía)
+        // ================= Tablas estilo =================
+        estiloTabla(tablaCola);
+        estiloTabla(tablaHistorial);
+
+        // ================= Inicializar simulador =================
         simulador = new Simulador(this);
 
-        // ActionListeners
+        // ================= Listeners =================
         btnAgregar.addActionListener(e -> onAgregar());
         btnIniciar.addActionListener(e -> onIniciar());
         btnDetener.addActionListener(e -> onDetener());
         btnReiniciar.addActionListener(e -> onReiniciar());
 
-        // Mejora UX: cuando seleccionen otro algoritmo, habilitar/deshabilitar campo quantum
         comboAlgoritmo.addActionListener(e -> {
-            String alg = (String) comboAlgoritmo.getSelectedItem();
-            txtQuantum.setEnabled("Round Robin".equals(alg));
+            String alg = (String)comboAlgoritmo.getSelectedItem();
+            spinnerQuantum.setEnabled("Round Robin".equals(alg));
         });
-        txtQuantum.setEnabled(false);
+        spinnerQuantum.setEnabled(false);
+
+        // ================= Estilo botones =================
+        for (JButton btn : new JButton[]{btnAgregar, btnIniciar, btnDetener, btnReiniciar}) {
+            btn.setBackground(new Color(70,130,180));
+            btn.setForeground(Color.WHITE);
+            btn.setFocusPainted(false);
+            btn.setCursor(new Cursor(Cursor.HAND_CURSOR));
+            btn.setFont(new Font("SansSerif", Font.BOLD, 14));
+        }
     }
 
+    private void estiloTabla(JTable tabla) {
+        tabla.setFillsViewportHeight(true);
+        tabla.setBackground(new Color(255,255,240));
+        tabla.setForeground(Color.DARK_GRAY);
+        tabla.setFont(new Font("SansSerif", Font.PLAIN, 14));
+        tabla.getTableHeader().setBackground(new Color(100,149,237));
+        tabla.getTableHeader().setForeground(Color.WHITE);
+
+        tabla.setDefaultRenderer(Object.class, new DefaultTableCellRenderer() {
+            @Override
+            public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected,
+                                                           boolean hasFocus, int row, int column) {
+                super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
+                setBackground(row % 2 == 0 ? Color.WHITE : new Color(230,230,250));
+                return this;
+            }
+        });
+    }
+
+    // ================= Métodos de simulación =================
     private void onAgregar() {
         try {
             String nombre = txtNombre.getText().trim();
             if (nombre.isEmpty()) nombre = "Proc";
 
-            int cpu = Integer.parseInt(txtCPU.getText().trim());
-            int llegada = Integer.parseInt(txtLlegada.getText().trim());
-            int quantum = txtQuantum.getText().trim().isEmpty() ? 0 : Integer.parseInt(txtQuantum.getText().trim());
+            int cpu = (Integer) spinnerCPU.getValue();
+            int llegada = (Integer) spinnerLlegada.getValue();
+            int quantum = spinnerQuantum.isEnabled() ? (Integer) spinnerQuantum.getValue() : 0;
 
             Proceso p = new Proceso(nombre, cpu, llegada, quantum);
             simulador.agregarProceso(p);
-
-            // mostrar en tabla de cola (si llega en tiempo futuro, aparecerá cuando llegue también; pero
-            // agregamos ahora para que el usuario vea que existe)
             modeloCola.addRow(new Object[]{p.getPid(), p.getNombre(), p.getTiempoCPU(), p.getLlegada(), p.getTiempoRestante()});
 
-            // limpiar campos útiles para nueva entrada
             txtNombre.setText("");
-            txtCPU.setText("");
-            txtLlegada.setText("");
-            // no limpiar quantum ni algoritmo, por UX
         } catch (NumberFormatException ex) {
-            JOptionPane.showMessageDialog(this, "Verifica los campos numéricos (CPU, Llegada, Quantum).", "Error", JOptionPane.ERROR_MESSAGE);
+            JOptionPane.showMessageDialog(this, "Verifica los campos numéricos.", "Error", JOptionPane.ERROR_MESSAGE);
         }
     }
 
     private void onIniciar() {
         try {
-            int ms = Integer.parseInt(txtVelocidad.getText().trim());
-            if (ms < 50) ms = 50; // límite inferior razonable
+            int ms = (Integer) spinnerVelocidad.getValue();
             simulador.setMilisegundosPorUnidad(ms);
 
             String alg = (String) comboAlgoritmo.getSelectedItem();
-            int quantum = txtQuantum.getText().trim().isEmpty() ? 1 : Integer.parseInt(txtQuantum.getText().trim());
+            int quantum = spinnerQuantum.isEnabled() ? (Integer) spinnerQuantum.getValue() : 1;
             simulador.configurarPlanificador(alg, quantum);
-
             simulador.iniciar();
 
-            // deshabilitar edición mientras corre para evitar conflictos
-            txtVelocidad.setEnabled(false);
+            spinnerVelocidad.setEnabled(false);
             comboAlgoritmo.setEnabled(false);
         } catch (NumberFormatException ex) {
-            JOptionPane.showMessageDialog(this, "Velocidad debe ser un número (ms por unidad).", "Error", JOptionPane.ERROR_MESSAGE);
+            JOptionPane.showMessageDialog(this, "Velocidad debe ser un número.", "Error", JOptionPane.ERROR_MESSAGE);
         }
     }
 
     private void onDetener() {
         simulador.detener();
-        txtVelocidad.setEnabled(true);
+        spinnerVelocidad.setEnabled(true);
         comboAlgoritmo.setEnabled(true);
     }
 
@@ -170,17 +194,15 @@ public class VentanaPrincipal extends JFrame {
         modeloCola.setRowCount(0);
         modeloHistorial.setRowCount(0);
         lblCPU.setText("CPU libre");
+        lblCPU.setForeground(new Color(34,139,34));
         lblTiempo.setText("Tiempo: 0");
 
-        // reconstruir simulador nuevo
         simulador = new Simulador(this);
-        txtVelocidad.setEnabled(true);
+        spinnerVelocidad.setEnabled(true);
         comboAlgoritmo.setEnabled(true);
     }
 
-    // Métodos llamados desde Simulador para actualizar UI en cada tick
     public void agregarFilaCola(Proceso p) {
-        // si ya existe pid en tabla, no añadir (evita duplicados)
         boolean existe = false;
         for (int r = 0; r < modeloCola.getRowCount(); r++) {
             if (((Integer)modeloCola.getValueAt(r,0)) == p.getPid()) { existe = true; break; }
@@ -190,20 +212,20 @@ public class VentanaPrincipal extends JFrame {
 
     public void agregarFilaHistorial(Proceso p, int finishTime) {
         modeloHistorial.addRow(new Object[]{p.getPid(), p.getNombre(), p.getTiempoCPU(), p.getLlegada(), finishTime});
-        // remover de cola si seguía allí
         refrescarTablaColaSimRemove(p.getPid());
     }
 
     public void actualizarProcesoEnCPU(Proceso p) {
         lblCPU.setText(String.format("Ejecutando: P%d - %s (R:%d)", p.getPid(), p.getNombre(), p.getTiempoRestante()));
+        lblCPU.setForeground(new Color(220,20,60)); // rojo ejecutando
     }
 
     public void limpiarCPU() {
         lblCPU.setText("CPU libre");
+        lblCPU.setForeground(new Color(34,139,34)); // verde libre
     }
 
     public void refrescarTablaCola(java.util.List<Proceso> lista) {
-        // actualiza toda la tabla de cola con la lista proporcionada
         SwingUtilities.invokeLater(() -> {
             modeloCola.setRowCount(0);
             for (Proceso p : lista) {
