@@ -45,6 +45,19 @@ según distintos algoritmos de planificación.
 - IDE con soporte para Swing
 - Extensión de Java para VS Code (si usas VS Code)
 
+  Ejemplos de Simulación:
+  FCFS
+  ![logo](https://github.com/DavidOro07/simulador_proceso/blob/9d9ea328fbcd3dfc9ca3514dddec2b4b87307008/fotos/FCFS0.jpeg)
+  ![logo](https://github.com/DavidOro07/simulador_proceso/blob/9d9ea328fbcd3dfc9ca3514dddec2b4b87307008/fotos/FCFS.jpeg)
+  ![logo](https://github.com/DavidOro07/simulador_proceso/blob/9d9ea328fbcd3dfc9ca3514dddec2b4b87307008/fotos/FCFS2.jpeg)
+  ![logo](https://github.com/DavidOro07/simulador_proceso/blob/9d9ea328fbcd3dfc9ca3514dddec2b4b87307008/fotos/FCFS3.jpeg)
+
+  SRTF
+  ![logo](https://github.com/DavidOro07/simulador_proceso/blob/8fa34c7f0c3e492427b7013c6abe6faee071da3b/fotos/SRTF.jpeg)
+
+  RR
+  ![logo](https://github.com/DavidOro07/simulador_proceso/blob/8fa34c7f0c3e492427b7013c6abe6faee071da3b/fotos/RR.jpeg)
+  
 Contribuidores:
 1. David Enrique Orozco Ajquijay     1990-23-12183
 2. Sergio Josué Daniel Cúmez Pichiyá 1990-23-7837
