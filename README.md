@@ -44,3 +44,9 @@ según distintos algoritmos de planificación.
 - Java JDK 8+
 - IDE con soporte para Swing
 - Extensión de Java para VS Code (si usas VS Code)
+
+Contribuidores:
+1. David Enrique Orozco Ajquijay     1990-23-12183
+2. Sergio Josué Daniel Cúmez Pichiyá 1990-23-7837
+3. Luis Francisco Aguirre Coj        1990-23-9406
+4. Miguel Angel Raul Azmitia Ovalle  1990-23-8264
