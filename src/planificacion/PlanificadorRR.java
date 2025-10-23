@@ -4,12 +4,13 @@ import proceso.Proceso;
 import java.util.List;
 
 /**
- * Implementación básica RR que mantiene un contador interno de quantum actual.
- * La clase NO remueve el enEjecucion automáticamente de la cola; Simulador debe
- * manejar el regreso del proceso a la cola si Planificador devuelve otro proceso.
+ * Planificador Round Robin (RR)
+ *
+ * Basado en la implementación JavaScript original, adaptado para integrarse
+ * con el modelo de simulador existente que gestiona la cola y el CPU.
  */
 public class PlanificadorRR implements Planificador {
-    private final int quantum; // unidades
+    private final int quantum; // duración del quantum en unidades de tiempo
     private int contadorQuantum = 0;
 
     public PlanificadorRR(int quantum) {
@@ -18,35 +19,45 @@ public class PlanificadorRR implements Planificador {
 
     @Override
     public Proceso seleccionarSiguiente(List<Proceso> colaListos, int tiempoActual, Proceso enEjecucion) {
-        // Si hay un enEjecucion y aún no ha consumido su quantum, lo mantiene
-        if (enEjecucion != null && enEjecucion.getTiempoRestante() > 0) {
-            contadorQuantum++;
-            if (contadorQuantum < quantum) {
-                return enEjecucion;
+        // Si hay proceso ejecutándose actualmente
+        if (enEjecucion != null) {
+            // El proceso todavía tiene tiempo restante
+            if (enEjecucion.getTiempoRestante() > 0) {
+                contadorQuantum++;
+
+                // Si no se ha agotado el quantum, continuar con el mismo proceso
+                if (contadorQuantum < quantum) {
+                    return enEjecucion;
+                } else {
+                    // Quantum expiró → reiniciar contador
+                    contadorQuantum = 0;
+
+                    // Si el proceso aún no ha terminado, el simulador lo reencola
+                    // y el planificador elige el siguiente proceso disponible
+                    if (!colaListos.isEmpty()) {
+                        return colaListos.remove(0);
+                    } else {
+                        // Si no hay más procesos, continuar con el mismo
+                        return enEjecucion;
+                    }
+                }
             } else {
-                // quantum expiró: reset y devolver null para que Simulador saque del CPU
+                // Proceso terminó → reiniciar contador y elegir otro
                 contadorQuantum = 0;
-                // Simulador se encargará de devolver enEjecucion a la cola si quedó remanente.
-                // Ahora elegimos siguiente de la cola (si hay)
                 if (!colaListos.isEmpty()) {
                     return colaListos.remove(0);
-                } else {
-                    // si no hay otros, seguir con el mismo proceso reiniciando contador
-                    contadorQuantum = 0;
-                    return enEjecucion; // continúa si es el único
                 }
+                return null;
             }
         } else {
-            // no hay enEjecucion: tomar el primero de la cola (si existe)
+            // No hay proceso en ejecución → tomar el primero de la cola
             if (!colaListos.isEmpty()) {
                 contadorQuantum = 0;
                 return colaListos.remove(0);
             }
         }
+
+        // No hay proceso disponible
         return null;
     }
 }
-
-
-
-
