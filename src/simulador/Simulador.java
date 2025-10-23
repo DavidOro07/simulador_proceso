@@ -9,37 +9,47 @@ import java.util.Iterator;
 import java.util.List;
 
 /**
- * Simulador: controla el reloj, las llegadas, la cola de listos, ejecución y el historial.
- * Usa javax.swing.Timer (sin importar java.util.Timer).
+ * Clase Simulador:
+ * Controla el reloj, las llegadas de procesos, la cola de listos,
+ * la ejecución en CPU y el historial de procesos terminados.
+ * 
+ * Usa javax.swing.Timer para simular el paso del tiempo en la GUI.
  */
 public class Simulador {
-    private final List<Proceso> procesos = new ArrayList<>(); // todos los procesos creados (para llegada)
-    private final List<Proceso> colaListos = new ArrayList<>(); // procesos listos para ejecutar
-    private final List<Proceso> historial = new ArrayList<>(); // procesos terminados
-    private Proceso enEjecucion = null;
+    // Listas principales del simulador
+    private final List<Proceso> procesos = new ArrayList<>();   // todos los procesos creados (entrada)
+    private final List<Proceso> colaListos = new ArrayList<>(); // procesos que están listos para ejecutar
+    private final List<Proceso> historial = new ArrayList<>();  // procesos que ya terminaron
 
-    private Planificador planificador;
-    private javax.swing.Timer timer; // javax.swing.Timer
-    private int tiempo = 0; // tiempo en unidades
-    private final VentanaPrincipal ventana;
-    private int milisegundosPorUnidad = 1000; // configurable
+    private Proceso enEjecucion = null; // proceso actualmente en CPU
+    private Planificador planificador;  // algoritmo de planificación seleccionado
+    private javax.swing.Timer timer;    // reloj del simulador (usa Swing Timer)
+    private int tiempo = 0;             // contador de tiempo en unidades
+    private final VentanaPrincipal ventana; // referencia a la GUI
+    private int milisegundosPorUnidad = 1000; // tiempo real por unidad simulada
 
-    // Para Round Robin necesitamos pasar quantum al planificador cuando se crea
+    // Constructor: recibe la ventana principal para actualizar la GUI
     public Simulador(VentanaPrincipal ventana) {
         this.ventana = ventana;
     }
 
-    public void setMilisegundosPorUnidad(int ms) { this.milisegundosPorUnidad = ms; }
+    // Permite cambiar la velocidad de simulación (ms por unidad de tiempo)
+    public void setMilisegundosPorUnidad(int ms) { 
+        this.milisegundosPorUnidad = ms; 
+    }
 
+    // Agregar proceso a la lista inicial de procesos
     public void agregarProceso(Proceso p) {
         procesos.add(p);
     }
 
+    // Métodos de acceso
     public List<Proceso> getColaListos() { return colaListos; }
     public Proceso getEnEjecucion() { return enEjecucion; }
     public List<Proceso> getHistorial() { return historial; }
     public int getTiempo() { return tiempo; }
 
+    // Configuración del algoritmo de planificación
     public void configurarPlanificador(String algoritmo, int quantum) {
         switch (algoritmo) {
             case "FCFS" -> planificador = new PlanificadorFCFS();
@@ -50,68 +60,73 @@ public class Simulador {
         }
     }
 
+    // Inicia la simulación (empieza el reloj)
     public void iniciar() {
         if (planificador == null) planificador = new PlanificadorFCFS();
         if (timer != null && timer.isRunning()) timer.stop();
 
+        // Cada "tick" ocurre cada milisegundosPorUnidad
         timer = new javax.swing.Timer(milisegundosPorUnidad, e -> tick());
         timer.start();
     }
 
+    // Detiene la simulación (pausa el reloj)
     public void detener() {
         if (timer != null) timer.stop();
     }
 
+    // Lógica de un "tick" de tiempo (una unidad simulada)
     private void tick() {
-        // 1) agregar procesos que llegan en este instante
+        // 1) Revisar procesos que llegan en este instante
         for (Iterator<Proceso> it = procesos.iterator(); it.hasNext(); ) {
             Proceso p = it.next();
             if (p.getLlegada() == tiempo) {
                 colaListos.add(p);
-                ventana.agregarFilaCola(p); // actualiza tabla inmediatamente cuando llega
-                // no remueve de procesos: lo dejamos para posibles usos; si no quieres mantenerlo, podrías removerlo.
+                ventana.agregarFilaCola(p); // actualizar tabla de listos en la GUI
+                // Nota: no se elimina de "procesos" para conservar registro
             }
         }
 
-        // 2) seleccionar siguiente proceso (planificador puede devolver enEjecucion o uno nuevo)
+        // 2) Seleccionar siguiente proceso según el planificador
         Proceso seleccionado = planificador.seleccionarSiguiente(colaListos, tiempo, enEjecucion);
 
-        // Si planificador devolvió distinto al que estaba, manejar preempción / retorno a cola
+        // Manejo de cambios de proceso (preempción si aplica)
         if (seleccionado != null && enEjecucion != null && seleccionado != enEjecucion) {
-            // si el proceso anterior aún tiene tiempo restante lo devolvemos a cola (excepto SRTF ya lo habría gestionado)
+            // Si el proceso interrumpido aún no terminó, vuelve a la cola
             if (enEjecucion.getTiempoRestante() > 0) {
                 colaListos.add(enEjecucion);
                 ventana.agregarFilaCola(enEjecucion);
             }
             enEjecucion = seleccionado;
         } else if (seleccionado == null && enEjecucion == null) {
-            // CPU libre y no hay nada que ejecutar
+            // CPU libre y sin procesos disponibles
             enEjecucion = null;
         } else {
             enEjecucion = seleccionado;
         }
 
-        // 3) ejecutar 1 unidad si hay proceso
+        // 3) Ejecutar una unidad de CPU si hay proceso en ejecución
         if (enEjecucion != null) {
             int rem = enEjecucion.getTiempoRestante() - 1;
             enEjecucion.setTiempoRestante(Math.max(0, rem));
             ventana.actualizarProcesoEnCPU(enEjecucion);
 
             if (enEjecucion.getTiempoRestante() == 0) {
-                // termino
+                // Proceso terminó → mover a historial
                 historial.add(enEjecucion);
-                ventana.agregarFilaHistorial(enEjecucion, tiempo + 1); // finish time = tiempo+1
+                ventana.agregarFilaHistorial(enEjecucion, tiempo + 1); // registra tiempo de fin
                 enEjecucion = null;
                 ventana.limpiarCPU();
             }
         } else {
+            // CPU vacía en este tick
             ventana.limpiarCPU();
         }
 
-        // 4) actualizar tabla de cola (remover procesos con tiempo 0 si quedaron)
+        // 4) Refrescar la cola de listos en la interfaz
         ventana.refrescarTablaCola(colaListos);
 
-        // 5) incrementar tiempo y actualizar label
+        // 5) Avanzar tiempo y actualizar display
         tiempo++;
         ventana.actualizarTiempo(tiempo);
     }
