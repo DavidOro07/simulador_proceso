@@ -6,10 +6,9 @@ import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.DefaultTableModel;
 import proceso.Proceso;
 
-/**
- * Ventana principal con diseño visual mejorado.
- */
 public class VentanaPrincipal extends JFrame {
+
+    // ================== Componentes de entrada ==================
     private final JTextField txtNombre = new JTextField();
     private final JSpinner spinnerCPU = new JSpinner(new SpinnerNumberModel(1, 1, 1000, 1));
     private final JSpinner spinnerLlegada = new JSpinner(new SpinnerNumberModel(0, 0, 1000, 1));
@@ -17,12 +16,21 @@ public class VentanaPrincipal extends JFrame {
     private final JComboBox<String> comboAlgoritmo = new JComboBox<>(new String[]{"FCFS", "SJF", "SRTF", "Round Robin"});
     private final JSpinner spinnerVelocidad = new JSpinner(new SpinnerNumberModel(1000, 50, 5000, 50));
 
+    // ================== Tablas ==================
     private final DefaultTableModel modeloCola = new DefaultTableModel(new String[]{"PID", "Nombre", "CPU", "Llegada", "Restante"}, 0);
     private final JTable tablaCola = new JTable(modeloCola);
 
     private final DefaultTableModel modeloHistorial = new DefaultTableModel(new String[]{"PID", "Nombre", "CPU", "Llegada", "FinishTime"}, 0);
     private final JTable tablaHistorial = new JTable(modeloHistorial);
 
+    private final DefaultTableModel modeloMetricas = new DefaultTableModel(
+            new String[]{"PID", "Nombre", "tf", "Tr", "Te", "Is"}, 0);
+    private final JTable tablaMetricas = new JTable(modeloMetricas);
+
+    // ================== Label de promedio ==================
+    private final JLabel lblPromedioIS = new JLabel("Promedio IS: 0.00", SwingConstants.RIGHT);
+
+    // ================== Panel inferior ==================
     private final JLabel lblCPU = new JLabel("CPU libre", SwingConstants.CENTER);
     private final JLabel lblTiempo = new JLabel("Tiempo: 0", SwingConstants.CENTER);
 
@@ -35,9 +43,9 @@ public class VentanaPrincipal extends JFrame {
         setDefaultCloseOperation(EXIT_ON_CLOSE);
         setLayout(new BorderLayout(8, 8));
 
-        // ================= Panel izquierdo =================
+        // ================== Panel izquierdo ==================
         JPanel panelLeft = new JPanel(new GridBagLayout());
-        panelLeft.setBackground(new Color(245, 245, 245));
+        panelLeft.setBackground(new Color(255, 255, 250));
         panelLeft.setBorder(BorderFactory.createCompoundBorder(
                 BorderFactory.createTitledBorder("Crear Proceso / Configuración"),
                 BorderFactory.createEmptyBorder(10, 10, 10, 10)
@@ -46,41 +54,23 @@ public class VentanaPrincipal extends JFrame {
         c.insets = new Insets(6, 6, 6, 6);
         c.fill = GridBagConstraints.HORIZONTAL;
 
-        c.gridx = 0;
-        c.gridy = 0;
-        panelLeft.add(new JLabel("Nombre:"), c);
-        c.gridx = 1;
-        panelLeft.add(txtNombre, c);
+        c.gridx = 0; c.gridy = 0; panelLeft.add(new JLabel("Nombre:"), c);
+        c.gridx = 1; panelLeft.add(txtNombre, c);
 
-        c.gridx = 0;
-        c.gridy = 1;
-        panelLeft.add(new JLabel("Tiempo CPU (u):"), c);
-        c.gridx = 1;
-        panelLeft.add(spinnerCPU, c);
+        c.gridx = 0; c.gridy = 1; panelLeft.add(new JLabel("Tiempo CPU (u):"), c);
+        c.gridx = 1; panelLeft.add(spinnerCPU, c);
 
-        c.gridx = 0;
-        c.gridy = 2;
-        panelLeft.add(new JLabel("Llegada (u):"), c);
-        c.gridx = 1;
-        panelLeft.add(spinnerLlegada, c);
+        c.gridx = 0; c.gridy = 2; panelLeft.add(new JLabel("Llegada (u):"), c);
+        c.gridx = 1; panelLeft.add(spinnerLlegada, c);
 
-        c.gridx = 0;
-        c.gridy = 3;
-        panelLeft.add(new JLabel("Quantum (RR):"), c);
-        c.gridx = 1;
-        panelLeft.add(spinnerQuantum, c);
+        c.gridx = 0; c.gridy = 3; panelLeft.add(new JLabel("Quantum (RR):"), c);
+        c.gridx = 1; panelLeft.add(spinnerQuantum, c);
 
-        c.gridx = 0;
-        c.gridy = 4;
-        panelLeft.add(new JLabel("Algoritmo:"), c);
-        c.gridx = 1;
-        panelLeft.add(comboAlgoritmo, c);
+        c.gridx = 0; c.gridy = 4; panelLeft.add(new JLabel("Algoritmo:"), c);
+        c.gridx = 1; panelLeft.add(comboAlgoritmo, c);
 
-        c.gridx = 0;
-        c.gridy = 5;
-        panelLeft.add(new JLabel("Velocidad ms/unidad:"), c);
-        c.gridx = 1;
-        panelLeft.add(spinnerVelocidad, c);
+        c.gridx = 0; c.gridy = 5; panelLeft.add(new JLabel("Velocidad ms/unidad:"), c);
+        c.gridx = 1; panelLeft.add(spinnerVelocidad, c);
 
         JButton btnAgregar = new JButton("Agregar Proceso");
         JButton btnIniciar = new JButton("Iniciar Simulación");
@@ -94,42 +84,48 @@ public class VentanaPrincipal extends JFrame {
         panelBtns.add(btnDetener);
         panelBtns.add(btnReiniciar);
 
-        c.gridx = 0;
-        c.gridy = 6;
-        c.gridwidth = 2;
+        c.gridx = 0; c.gridy = 6; c.gridwidth = 2;
         panelLeft.add(panelBtns, c);
 
         add(panelLeft, BorderLayout.WEST);
 
-        // ================= Panel central =================
+        // ================== Panel central ==================
         JPanel panelCenter = new JPanel(new BorderLayout(6, 6));
-        panelCenter.setBackground(new Color(250, 250, 250));
+        panelCenter.setBackground(new Color(255, 255, 255));
         panelCenter.setBorder(BorderFactory.createTitledBorder("Procesos"));
 
-        JPanel tablas = new JPanel(new GridLayout(2, 1, 6, 6));
+        estiloTabla(tablaCola);
+        estiloTabla(tablaHistorial);
+        estiloTabla(tablaMetricas);
+
+        // Panel de métricas con promedio
+        JPanel panelMetricas = new JPanel(new BorderLayout());
+        panelMetricas.add(new JScrollPane(tablaMetricas), BorderLayout.CENTER);
+        panelMetricas.add(lblPromedioIS, BorderLayout.SOUTH);
+        panelMetricas.setBorder(BorderFactory.createTitledBorder("Tabla de eficiencia"));
+
+        JPanel tablas = new JPanel(new GridLayout(3, 1, 6, 6));
         tablas.add(new JScrollPane(tablaCola));
         tablas.add(new JScrollPane(tablaHistorial));
+        tablas.add(panelMetricas);
+
         panelCenter.add(tablas, BorderLayout.CENTER);
         add(panelCenter, BorderLayout.CENTER);
 
-        // ================= Panel inferior =================
+        // ================== Panel inferior ==================
         JPanel panelBottom = new JPanel(new BorderLayout(6, 6));
         panelBottom.setBackground(new Color(230, 230, 250));
         lblCPU.setFont(new Font("SansSerif", Font.BOLD, 20));
-        lblCPU.setForeground(new Color(34, 139, 34)); // verde libre
+        lblCPU.setForeground(new Color(34, 139, 34));
         panelBottom.add(lblCPU, BorderLayout.CENTER);
         lblTiempo.setFont(new Font("SansSerif", Font.BOLD, 16));
         panelBottom.add(lblTiempo, BorderLayout.EAST);
         add(panelBottom, BorderLayout.SOUTH);
 
-        // ================= Tablas estilo =================
-        estiloTabla(tablaCola);
-        estiloTabla(tablaHistorial);
-
-        // ================= Inicializar simulador =================
+        // ================== Inicializar simulador ==================
         simulador = new Simulador(this);
 
-        // ================= Listeners =================
+        // ================== Listeners ==================
         btnAgregar.addActionListener(e -> onAgregar());
         btnIniciar.addActionListener(e -> onIniciar());
         btnDetener.addActionListener(e -> onDetener());
@@ -141,7 +137,6 @@ public class VentanaPrincipal extends JFrame {
         });
         spinnerQuantum.setEnabled(false);
 
-        // ================= Estilo botones =================
         for (JButton btn : new JButton[]{btnAgregar, btnIniciar, btnDetener, btnReiniciar}) {
             btn.setBackground(new Color(70, 130, 180));
             btn.setForeground(Color.WHITE);
@@ -153,7 +148,7 @@ public class VentanaPrincipal extends JFrame {
 
     private void estiloTabla(JTable tabla) {
         tabla.setFillsViewportHeight(true);
-        tabla.setBackground(new Color(255, 255, 240));
+        tabla.setBackground(new Color(255, 255, 250));
         tabla.setForeground(Color.DARK_GRAY);
         tabla.setFont(new Font("SansSerif", Font.PLAIN, 14));
         tabla.getTableHeader().setBackground(new Color(100, 149, 237));
@@ -170,7 +165,7 @@ public class VentanaPrincipal extends JFrame {
         });
     }
 
-    // ================= Métodos de simulación =================
+    // ================== Métodos de simulación ==================
     private void onAgregar() {
         try {
             String nombre = txtNombre.getText().trim();
@@ -217,9 +212,11 @@ public class VentanaPrincipal extends JFrame {
         simulador.detener();
         modeloCola.setRowCount(0);
         modeloHistorial.setRowCount(0);
+        modeloMetricas.setRowCount(0);
         lblCPU.setText("CPU libre");
         lblCPU.setForeground(new Color(34, 139, 34));
         lblTiempo.setText("Tiempo: 0");
+        lblPromedioIS.setText("Promedio IS: 0.00");
 
         simulador = new Simulador(this);
         spinnerVelocidad.setEnabled(true);
@@ -243,14 +240,63 @@ public class VentanaPrincipal extends JFrame {
         refrescarTablaColaSimRemove(p.getPid());
     }
 
+    public void agregarFilaMetricas(Proceso p, int finishTime) {
+        int tf = finishTime;
+        int ti = p.getLlegada();
+        int t = p.getTiempoCPU();
+        int Tr = tf - ti;
+        int Te = Tr - t;
+        double Is = (double) t / Tr;
+
+        modeloMetricas.addRow(new Object[]{
+                p.getPid(), p.getNombre(), tf, Tr, Te, String.format("%.2f", Is)
+        });
+
+        actualizarPromedioIS();
+    }
+
+    // ================== NUEVO MÉTODO ==================
+    private void actualizarPromedioIS() {
+        double suma = 0.0;
+        int filas = modeloMetricas.getRowCount();
+
+        for (int i = 0; i < filas; i++) {
+            try {
+                suma += Double.parseDouble(modeloMetricas.getValueAt(i, 5).toString());
+            } catch (NumberFormatException e) {
+                // Ignorar valores no válidos
+            }
+        }
+
+        double promedio = filas > 0 ? suma / filas : 0.0;
+        lblPromedioIS.setText(String.format("Promedio IS: %.2f", promedio));
+    }
+
+    public void resaltarMasEficiente() {
+        if (modeloMetricas.getRowCount() == 0) return;
+        double maxIs = -1;
+        int filaMax = -1;
+        for (int i = 0; i < modeloMetricas.getRowCount(); i++) {
+            double is = Double.parseDouble(modeloMetricas.getValueAt(i, 5).toString());
+            if (is > maxIs) {
+                maxIs = is;
+                filaMax = i;
+            }
+        }
+        if (filaMax != -1) {
+            tablaMetricas.setRowSelectionInterval(filaMax, filaMax);
+            tablaMetricas.setSelectionBackground(Color.YELLOW);
+        }
+    }
+
     public void actualizarProcesoEnCPU(Proceso p) {
         lblCPU.setText(String.format("Ejecutando: P%d - %s (R:%d)", p.getPid(), p.getNombre(), p.getTiempoRestante()));
-        lblCPU.setForeground(new Color(220, 20, 60)); // rojo ejecutando
+        lblCPU.setForeground(new Color(220, 20, 60));
     }
 
     public void limpiarCPU() {
         lblCPU.setText("CPU libre");
-        lblCPU.setForeground(new Color(34, 139, 34)); // verde libre
+        lblCPU.setForeground(new Color(34, 139, 34));
     }
 
     public void refrescarTablaCola(java.util.List<Proceso> lista) {

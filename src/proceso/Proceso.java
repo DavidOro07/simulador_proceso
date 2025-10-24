@@ -1,53 +1,84 @@
-package proceso; 
-// Paquete donde se encuentra la clase. Sirve para organizar el código.
+package proceso;
 
+/**
+ * Representa un proceso en el simulador de planificación.
+ */
 public class Proceso {
-    // ============================
-    // Atributos de clase y objeto
-    // ============================
+    private static int contador = 1;
 
-    private static int contadorPid = 1; 
-    // Variable estática que actúa como contador global para asignar
-    // automáticamente identificadores únicos (pid) a cada proceso creado.
+    private final int pid;          // Identificador único
+    private String nombre;
+    private int tiempoCPU;          // Tiempo total requerido en CPU
+    private int tiempoRestante;     // Tiempo restante
+    private int llegada;            // Instante de llegada
+    private int quantum;            // Quantum (solo usado en Round Robin)
 
-    private final int pid;         // Identificador único del proceso (auto-asignado)
-    private final String nombre;   // Nombre del proceso
-    private final int tiempoCPU;   // Tiempo total de CPU requerido por el proceso
-    private int tiempoRestante;    // Tiempo que falta por ejecutar
-    private final int llegada;     // Instante en que el proceso llega al sistema (unidades de tiempo)
-    private final int quantum;     // Quantum asignado (solo se usa en algoritmos con reparto por turnos como Round Robin)
-
-    // ============================
-    // Constructor
-    // ============================
     public Proceso(String nombre, int tiempoCPU, int llegada, int quantum) {
-        this.pid = contadorPid++;   // Asigna un identificador único y lo incrementa para el siguiente proceso
-        this.nombre = nombre;       // Asigna el nombre del proceso
-        this.tiempoCPU = tiempoCPU; // Tiempo total que requiere de CPU
-        this.tiempoRestante = tiempoCPU; // Inicialmente, el tiempo restante es igual al total
-        this.llegada = llegada;     // Instante de llegada
-        this.quantum = quantum;     // Quantum (en caso de aplicar algoritmos con rebanado de tiempo)
+        this.pid = contador++;
+        this.nombre = nombre;
+        this.tiempoCPU = tiempoCPU;
+        this.tiempoRestante = tiempoCPU;
+        this.llegada = llegada;
+        this.quantum = quantum;
     }
 
-    // ============================
-    // Métodos de acceso (Getters y Setter)
-    // ============================
+    // ================= Getters & Setters =================
 
-    public int getPid() { return pid; }                     // Devuelve el ID del proceso
-    public String getNombre() { return nombre; }            // Devuelve el nombre
-    public int getTiempoCPU() { return tiempoCPU; }         // Devuelve el tiempo total de CPU requerido
-    public int getTiempoRestante() { return tiempoRestante; } // Devuelve cuánto tiempo queda por ejecutar
-    public void setTiempoRestante(int tiempoRestante) { this.tiempoRestante = tiempoRestante; } // Actualiza el tiempo restante
-    public int getLlegada() { return llegada; }             // Devuelve el instante de llegada
-    public int getQuantum() { return quantum; }             // Devuelve el quantum asignado
+    public int getPid() {
+        return pid;
+    }
 
-    // ============================
-    // Representación en texto del proceso
-    // ============================
+    public String getNombre() {
+        return nombre;
+    }
+
+    public void setNombre(String nombre) {
+        this.nombre = nombre;
+    }
+
+    public int getTiempoCPU() {
+        return tiempoCPU;
+    }
+
+    public void setTiempoCPU(int tiempoCPU) {
+        this.tiempoCPU = tiempoCPU;
+        this.tiempoRestante = tiempoCPU; // actualizar también restante
+    }
+
+    public int getTiempoRestante() {
+        return tiempoRestante;
+    }
+
+    public void setTiempoRestante(int tiempoRestante) {
+        this.tiempoRestante = tiempoRestante;
+    }
+
+    public int getLlegada() {
+        return llegada;
+    }
+
+    public void setLlegada(int llegada) {
+        this.llegada = llegada;
+    }
+
+    public int getQuantum() {
+        return quantum;
+    }
+
+    public void setQuantum(int quantum) {
+        this.quantum = quantum;
+    }
+
+    // ================= Utilidades =================
+
+    /** Reinicia el proceso para nueva simulación (reutilización de datos). */
+    public void reiniciar() {
+        this.tiempoRestante = this.tiempoCPU;
+    }
+
     @Override
     public String toString() {
-        // Muestra el proceso en formato:
-        // P[id]-[nombre] (R:[tiempo restante])
-        return String.format("P%d-%s (R:%d)", pid, nombre, tiempoRestante);
+        return String.format("P%d (%s): CPU=%d, Llegada=%d, Restante=%d",
+                pid, nombre, tiempoCPU, llegada, tiempoRestante);
     }
 }

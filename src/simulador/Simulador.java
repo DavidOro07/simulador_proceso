@@ -22,7 +22,7 @@ public class Simulador {
     private javax.swing.Timer timer; // javax.swing.Timer
     private int tiempo = 0; // tiempo en unidades
     private final VentanaPrincipal ventana;
-    private int milisegundosPorUnidad = 1000; // configurable
+    private int milisegundosPorUnidad = 3000; // 👇 Cada unidad de tiempo = 3 segundos (por requerimiento)
 
     // Para Round Robin necesitamos pasar quantum al planificador cuando se crea
     public Simulador(VentanaPrincipal ventana) {
@@ -54,6 +54,7 @@ public class Simulador {
         if (planificador == null) planificador = new PlanificadorFCFS();
         if (timer != null && timer.isRunning()) timer.stop();
 
+        // 👇 Cada tick = 3 segundos de tiempo real
         timer = new javax.swing.Timer(milisegundosPorUnidad, e -> tick());
         timer.start();
     }
@@ -69,7 +70,6 @@ public class Simulador {
             if (p.getLlegada() == tiempo) {
                 colaListos.add(p);
                 ventana.agregarFilaCola(p); // actualiza tabla inmediatamente cuando llega
-                // no remueve de procesos: lo dejamos para posibles usos; si no quieres mantenerlo, podrías removerlo.
             }
         }
 
@@ -78,14 +78,12 @@ public class Simulador {
 
         // Si planificador devolvió distinto al que estaba, manejar preempción / retorno a cola
         if (seleccionado != null && enEjecucion != null && seleccionado != enEjecucion) {
-            // si el proceso anterior aún tiene tiempo restante lo devolvemos a cola (excepto SRTF ya lo habría gestionado)
             if (enEjecucion.getTiempoRestante() > 0) {
                 colaListos.add(enEjecucion);
                 ventana.agregarFilaCola(enEjecucion);
             }
             enEjecucion = seleccionado;
         } else if (seleccionado == null && enEjecucion == null) {
-            // CPU libre y no hay nada que ejecutar
             enEjecucion = null;
         } else {
             enEjecucion = seleccionado;
@@ -98,9 +96,10 @@ public class Simulador {
             ventana.actualizarProcesoEnCPU(enEjecucion);
 
             if (enEjecucion.getTiempoRestante() == 0) {
-                // termino
+                // 👇 Proceso termina
                 historial.add(enEjecucion);
                 ventana.agregarFilaHistorial(enEjecucion, tiempo + 1); // finish time = tiempo+1
+                ventana.agregarFilaMetricas(enEjecucion, tiempo + 1);  // 👇 agrega métricas a tabla
                 enEjecucion = null;
                 ventana.limpiarCPU();
             }
@@ -114,5 +113,19 @@ public class Simulador {
         // 5) incrementar tiempo y actualizar label
         tiempo++;
         ventana.actualizarTiempo(tiempo);
+
+        // 👇 6) Si no quedan procesos → detener simulación y resaltar eficiencia
+        if (enEjecucion == null && colaListos.isEmpty()) {
+            boolean quedanPorLlegar = procesos.stream()
+                    .anyMatch(p -> p.getLlegada() > tiempo && !historial.contains(p));
+            if (!quedanPorLlegar) {
+                detener();
+                ventana.limpiarCPU();
+                ventana.resaltarMasEficiente(); // 👇 marca el más eficiente
+                JOptionPane.showMessageDialog(null,
+                        "Simulación finalizada correctamente.",
+                        "Finalizado", JOptionPane.INFORMATION_MESSAGE);
+            }
+        }
     }
 }
