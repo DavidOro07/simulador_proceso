@@ -211,16 +211,99 @@ public class VentanaPrincipal extends JFrame {
     private void onReiniciar() {
         simulador.detener();
         modeloCola.setRowCount(0);
-        modeloHistorial.setRowCount(0);
-        modeloMetricas.setRowCount(0);
+        reiniciarTablas();
         lblCPU.setText("CPU libre");
         lblCPU.setForeground(new Color(34, 139, 34));
         lblTiempo.setText("Tiempo: 0");
-        lblPromedioIS.setText("Promedio IS: 0.00");
 
         simulador = new Simulador(this);
         spinnerVelocidad.setEnabled(true);
         comboAlgoritmo.setEnabled(true);
+    }
+
+    // Nuevo método para limpiar tablas de historial y métricas
+    public void reiniciarTablas() {
+        modeloHistorial.setRowCount(0);
+        modeloMetricas.setRowCount(0);
+        lblPromedioIS.setText("Promedio IS: 0.00");
+    }
+
+    // Nuevo método para mostrar diálogo de selección de algoritmo
+    public void mostrarDialogoNuevoAlgoritmo() {
+        // Crear diálogo
+        JDialog dialogo = new JDialog(this, "Seleccionar Nuevo Algoritmo", true);
+        dialogo.setSize(300, 150);
+        dialogo.setLocationRelativeTo(this);
+        dialogo.setLayout(new GridBagLayout());
+        GridBagConstraints c = new GridBagConstraints();
+        c.insets = new Insets(6, 6, 6, 6);
+        c.fill = GridBagConstraints.HORIZONTAL;
+
+        // Componentes del diálogo
+        JLabel lblAlgoritmo = new JLabel("Seleccionar algoritmo:");
+        JComboBox<String> comboNuevoAlgoritmo = new JComboBox<>(new String[]{"FCFS", "SJF", "SRTF", "Round Robin"});
+        JSpinner spinnerNuevoQuantum = new JSpinner(new SpinnerNumberModel(1, 1, 1000, 1));
+        JLabel lblQuantum = new JLabel("Quantum (RR):");
+        JButton btnEjecutar = new JButton("Ejecutar");
+        JButton btnSalir = new JButton("Salir");
+
+        // Sincronizar estado inicial del spinnerQuantum
+        comboNuevoAlgoritmo.setSelectedItem(comboAlgoritmo.getSelectedItem());
+        spinnerNuevoQuantum.setEnabled("Round Robin".equals(comboNuevoAlgoritmo.getSelectedItem()));
+
+        // Listener para habilitar/deshabilitar quantum
+        comboNuevoAlgoritmo.addActionListener(e -> {
+            spinnerNuevoQuantum.setEnabled("Round Robin".equals(comboNuevoAlgoritmo.getSelectedItem()));
+        });
+
+        // Agregar componentes al diálogo
+        c.gridx = 0; c.gridy = 0; dialogo.add(lblAlgoritmo, c);
+        c.gridx = 1; dialogo.add(comboNuevoAlgoritmo, c);
+        c.gridx = 0; c.gridy = 1; dialogo.add(lblQuantum, c);
+        c.gridx = 1; dialogo.add(spinnerNuevoQuantum, c);
+
+        JPanel panelBotones = new JPanel(new FlowLayout());
+        panelBotones.add(btnEjecutar);
+        panelBotones.add(btnSalir);
+        c.gridx = 0; c.gridy = 2; c.gridwidth = 2;
+        dialogo.add(panelBotones, c);
+
+        // Estilo de botones
+        for (JButton btn : new JButton[]{btnEjecutar, btnSalir}) {
+            btn.setBackground(new Color(70, 130, 180));
+            btn.setForeground(Color.WHITE);
+            btn.setFocusPainted(false);
+            btn.setCursor(new Cursor(Cursor.HAND_CURSOR));
+            btn.setFont(new Font("SansSerif", Font.BOLD, 14));
+        }
+
+        // Acción del botón Ejecutar
+        btnEjecutar.addActionListener(e -> {
+            String nuevoAlgoritmo = (String) comboNuevoAlgoritmo.getSelectedItem();
+            int quantum = spinnerNuevoQuantum.isEnabled() ? (Integer) spinnerNuevoQuantum.getValue() : 1;
+
+            // Sincronizar comboAlgoritmo de la ventana principal
+            comboAlgoritmo.setSelectedItem(nuevoAlgoritmo);
+            spinnerQuantum.setValue(quantum);
+
+            // Reiniciar simulador con el nuevo algoritmo
+            simulador.reiniciarConMismosProcesos(nuevoAlgoritmo, quantum);
+
+            // Reiniciar tablas
+            reiniciarTablas();
+
+            // Iniciar simulación
+            simulador.iniciar();
+
+            // Cerrar diálogo
+            dialogo.dispose();
+        });
+
+        // Acción del botón Salir
+        btnSalir.addActionListener(e -> dialogo.dispose());
+
+        // Mostrar diálogo
+        dialogo.setVisible(true);
     }
 
     public void agregarFilaCola(Proceso p) {
@@ -255,7 +338,6 @@ public class VentanaPrincipal extends JFrame {
         actualizarPromedioIS();
     }
 
-    // ================== NUEVO MÉTODO ==================
     private void actualizarPromedioIS() {
         double suma = 0.0;
         int filas = modeloMetricas.getRowCount();
