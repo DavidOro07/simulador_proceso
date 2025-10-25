@@ -147,8 +147,10 @@ public class Simulador {
             if (!quedanPorLlegar) {
                 detener();
                 ventana.limpiarCPU();
-                ventana.resaltarMasEficiente();
-                ventana.mostrarDialogoNuevoAlgoritmo();
+                SwingUtilities.invokeLater(() -> {
+                    ventana.resaltarMasEficiente();
+                    ventana.mostrarDialogoNuevoAlgoritmo();
+                });
             }
         }
     }

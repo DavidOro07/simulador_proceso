@@ -76,17 +76,18 @@ public class VentanaPrincipal extends JFrame {
         JButton btnIniciar = new JButton("Iniciar Simulación");
         JButton btnDetener = new JButton("Detener");
         JButton btnReiniciar = new JButton("Reiniciar");
+        JButton btnReutilizar = new JButton("Reutilizar Procesos");
 
-        JPanel panelBtns = new JPanel(new GridLayout(4, 1, 6, 6));
+        JPanel panelBtns = new JPanel(new GridLayout(5, 1, 6, 6));
         panelBtns.setBorder(BorderFactory.createEmptyBorder(10, 0, 0, 0));
         panelBtns.add(btnAgregar);
         panelBtns.add(btnIniciar);
         panelBtns.add(btnDetener);
         panelBtns.add(btnReiniciar);
+        panelBtns.add(btnReutilizar);
 
         c.gridx = 0; c.gridy = 6; c.gridwidth = 2;
         panelLeft.add(panelBtns, c);
-
         add(panelLeft, BorderLayout.WEST);
 
         // ================== Panel central ==================
@@ -98,7 +99,6 @@ public class VentanaPrincipal extends JFrame {
         estiloTabla(tablaHistorial);
         estiloTabla(tablaMetricas);
 
-        // Panel de métricas con promedio
         JPanel panelMetricas = new JPanel(new BorderLayout());
         panelMetricas.add(new JScrollPane(tablaMetricas), BorderLayout.CENTER);
         panelMetricas.add(lblPromedioIS, BorderLayout.SOUTH);
@@ -122,7 +122,6 @@ public class VentanaPrincipal extends JFrame {
         panelBottom.add(lblTiempo, BorderLayout.EAST);
         add(panelBottom, BorderLayout.SOUTH);
 
-        // ================== Inicializar simulador ==================
         simulador = new Simulador(this);
 
         // ================== Listeners ==================
@@ -130,6 +129,7 @@ public class VentanaPrincipal extends JFrame {
         btnIniciar.addActionListener(e -> onIniciar());
         btnDetener.addActionListener(e -> onDetener());
         btnReiniciar.addActionListener(e -> onReiniciar());
+        btnReutilizar.addActionListener(e -> onReutilizarProcesos());
 
         comboAlgoritmo.addActionListener(e -> {
             String alg = (String) comboAlgoritmo.getSelectedItem();
@@ -137,7 +137,7 @@ public class VentanaPrincipal extends JFrame {
         });
         spinnerQuantum.setEnabled(false);
 
-        for (JButton btn : new JButton[]{btnAgregar, btnIniciar, btnDetener, btnReiniciar}) {
+        for (JButton btn : new JButton[]{btnAgregar, btnIniciar, btnDetener, btnReiniciar, btnReutilizar}) {
             btn.setBackground(new Color(70, 130, 180));
             btn.setForeground(Color.WHITE);
             btn.setFocusPainted(false);
@@ -159,7 +159,12 @@ public class VentanaPrincipal extends JFrame {
             public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected,
                                                            boolean hasFocus, int row, int column) {
                 super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
+                // fila alternada
                 setBackground(row % 2 == 0 ? Color.WHITE : new Color(230, 230, 250));
+                // si está seleccionada (resaltada por resaltarMasEficiente), usar verde claro
+                if (isSelected) {
+                    setBackground(new Color(144, 238, 144));
+                }
                 return this;
             }
         });
@@ -221,16 +226,42 @@ public class VentanaPrincipal extends JFrame {
         comboAlgoritmo.setEnabled(true);
     }
 
-    // Nuevo método para limpiar tablas de historial y métricas
+    private void onReutilizarProcesos() {
+        if (simulador.getColaListos().isEmpty() && simulador.getHistorial().isEmpty() && simulador.getTiempo() == 0) {
+            JOptionPane.showMessageDialog(this, "No hay procesos para reutilizar. Agrega procesos primero.",
+                    "Error", JOptionPane.ERROR_MESSAGE);
+            return;
+        }
+
+        try {
+            int ms = (Integer) spinnerVelocidad.getValue();
+            simulador.setMilisegundosPorUnidad(ms);
+
+            String alg = (String) comboAlgoritmo.getSelectedItem();
+            int quantum = spinnerQuantum.isEnabled() ? (Integer) spinnerQuantum.getValue() : 1;
+
+            simulador.reiniciarConMismosProcesos(alg, quantum);
+            reiniciarTablas();
+            simulador.iniciar();
+
+            spinnerVelocidad.setEnabled(false);
+            comboAlgoritmo.setEnabled(false);
+        } catch (NumberFormatException ex) {
+            JOptionPane.showMessageDialog(this, "Verifica los campos numéricos.", "Error", JOptionPane.ERROR_MESSAGE);
+        }
+    }
+
     public void reiniciarTablas() {
         modeloHistorial.setRowCount(0);
         modeloMetricas.setRowCount(0);
         lblPromedioIS.setText("Promedio IS: 0.00");
     }
 
-    // Nuevo método para mostrar diálogo de selección de algoritmo
+    // ---------- Mostrar diálogo para seleccionar nuevo algoritmo (NO muestra mensaje del proceso) ----------
     public void mostrarDialogoNuevoAlgoritmo() {
-        // Crear diálogo
+        // solo resaltamos el más eficiente en la tabla
+        resaltarMasEficiente();
+
         JDialog dialogo = new JDialog(this, "Seleccionar Nuevo Algoritmo", true);
         dialogo.setSize(300, 150);
         dialogo.setLocationRelativeTo(this);
@@ -239,7 +270,6 @@ public class VentanaPrincipal extends JFrame {
         c.insets = new Insets(6, 6, 6, 6);
         c.fill = GridBagConstraints.HORIZONTAL;
 
-        // Componentes del diálogo
         JLabel lblAlgoritmo = new JLabel("Seleccionar algoritmo:");
         JComboBox<String> comboNuevoAlgoritmo = new JComboBox<>(new String[]{"FCFS", "SJF", "SRTF", "Round Robin"});
         JSpinner spinnerNuevoQuantum = new JSpinner(new SpinnerNumberModel(1, 1, 1000, 1));
@@ -247,16 +277,13 @@ public class VentanaPrincipal extends JFrame {
         JButton btnEjecutar = new JButton("Ejecutar");
         JButton btnSalir = new JButton("Salir");
 
-        // Sincronizar estado inicial del spinnerQuantum
         comboNuevoAlgoritmo.setSelectedItem(comboAlgoritmo.getSelectedItem());
         spinnerNuevoQuantum.setEnabled("Round Robin".equals(comboNuevoAlgoritmo.getSelectedItem()));
 
-        // Listener para habilitar/deshabilitar quantum
         comboNuevoAlgoritmo.addActionListener(e -> {
             spinnerNuevoQuantum.setEnabled("Round Robin".equals(comboNuevoAlgoritmo.getSelectedItem()));
         });
 
-        // Agregar componentes al diálogo
         c.gridx = 0; c.gridy = 0; dialogo.add(lblAlgoritmo, c);
         c.gridx = 1; dialogo.add(comboNuevoAlgoritmo, c);
         c.gridx = 0; c.gridy = 1; dialogo.add(lblQuantum, c);
@@ -268,7 +295,6 @@ public class VentanaPrincipal extends JFrame {
         c.gridx = 0; c.gridy = 2; c.gridwidth = 2;
         dialogo.add(panelBotones, c);
 
-        // Estilo de botones
         for (JButton btn : new JButton[]{btnEjecutar, btnSalir}) {
             btn.setBackground(new Color(70, 130, 180));
             btn.setForeground(Color.WHITE);
@@ -277,33 +303,48 @@ public class VentanaPrincipal extends JFrame {
             btn.setFont(new Font("SansSerif", Font.BOLD, 14));
         }
 
-        // Acción del botón Ejecutar
         btnEjecutar.addActionListener(e -> {
             String nuevoAlgoritmo = (String) comboNuevoAlgoritmo.getSelectedItem();
             int quantum = spinnerNuevoQuantum.isEnabled() ? (Integer) spinnerNuevoQuantum.getValue() : 1;
 
-            // Sincronizar comboAlgoritmo de la ventana principal
             comboAlgoritmo.setSelectedItem(nuevoAlgoritmo);
             spinnerQuantum.setValue(quantum);
-
-            // Reiniciar simulador con el nuevo algoritmo
             simulador.reiniciarConMismosProcesos(nuevoAlgoritmo, quantum);
-
-            // Reiniciar tablas
             reiniciarTablas();
-
-            // Iniciar simulación
             simulador.iniciar();
-
-            // Cerrar diálogo
             dialogo.dispose();
         });
 
-        // Acción del botón Salir
         btnSalir.addActionListener(e -> dialogo.dispose());
-
-        // Mostrar diálogo
         dialogo.setVisible(true);
+    }
+
+    // ---------- Resalta la fila con mayor Is ----------
+    public void resaltarMasEficiente() {
+        if (modeloMetricas.getRowCount() == 0) return;
+
+        int filaEficiente = -1;
+        double maxIs = -1.0;
+
+        for (int i = 0; i < modeloMetricas.getRowCount(); i++) {
+            try {
+                double is = Double.parseDouble(modeloMetricas.getValueAt(i, 5).toString());
+                if (is > maxIs) {
+                    maxIs = is;
+                    filaEficiente = i;
+                }
+            } catch (NumberFormatException ignored) {}
+        }
+
+        if (filaEficiente != -1) {
+            final int filaFinal = filaEficiente;
+            SwingUtilities.invokeLater(() -> {
+                tablaMetricas.clearSelection();
+                tablaMetricas.setRowSelectionInterval(filaFinal, filaFinal);
+                tablaMetricas.setSelectionBackground(new Color(144, 238, 144)); // verde claro
+                tablaMetricas.repaint();
+            });
+        }
     }
 
     public void agregarFilaCola(Proceso p) {
@@ -334,7 +375,6 @@ public class VentanaPrincipal extends JFrame {
         modeloMetricas.addRow(new Object[]{
                 p.getPid(), p.getNombre(), tf, Tr, Te, String.format("%.2f", Is)
         });
-
         actualizarPromedioIS();
     }
 
@@ -345,30 +385,11 @@ public class VentanaPrincipal extends JFrame {
         for (int i = 0; i < filas; i++) {
             try {
                 suma += Double.parseDouble(modeloMetricas.getValueAt(i, 5).toString());
-            } catch (NumberFormatException e) {
-                // Ignorar valores no válidos
-            }
+            } catch (NumberFormatException e) {}
         }
 
         double promedio = filas > 0 ? suma / filas : 0.0;
         lblPromedioIS.setText(String.format("Promedio IS: %.2f", promedio));
-    }
-
-    public void resaltarMasEficiente() {
-        if (modeloMetricas.getRowCount() == 0) return;
-        double maxIs = -1;
-        int filaMax = -1;
-        for (int i = 0; i < modeloMetricas.getRowCount(); i++) {
-            double is = Double.parseDouble(modeloMetricas.getValueAt(i, 5).toString());
-            if (is > maxIs) {
-                maxIs = is;
-                filaMax = i;
-            }
-        }
-        if (filaMax != -1) {
-            tablaMetricas.setRowSelectionInterval(filaMax, filaMax);
-            tablaMetricas.setSelectionBackground(Color.YELLOW);
-        }
     }
 
     public void actualizarProcesoEnCPU(Proceso p) {
@@ -390,16 +411,15 @@ public class VentanaPrincipal extends JFrame {
         });
     }
 
-    private void refrescarTablaColaSimRemove(int pid) {
-        SwingUtilities.invokeLater(() -> {
-            for (int r = 0; r < modeloCola.getRowCount(); r++) {
-                Integer val = (Integer) modeloCola.getValueAt(r, 0);
-                if (val == pid) {
-                    modeloCola.removeRow(r);
-                    break;
-                }
+    // MÉTODO QUE FALTABA (lo añadimos)
+    public void refrescarTablaColaSimRemove(int pid) {
+        for (int i = 0; i < modeloCola.getRowCount(); i++) {
+            Integer val = (Integer) modeloCola.getValueAt(i, 0);
+            if (val != null && val == pid) {
+                modeloCola.removeRow(i);
+                break;
             }
-        });
+        }
     }
 
     public void actualizarTiempo(int tiempo) {
