@@ -1,7 +1,27 @@
-# 🖥️ Simulador de Planificación de Procesos
+# 🖥️  Simulador de Algoritmos de Planificación de Procesos
 
-Este proyecto implementa un simulador de planificación de procesos en Java, utilizando una interfaz gráfica (GUI) basada en Swing. El simulador permite visualizar cómo se gestionan los procesos en una CPU 
-según distintos algoritmos de planificación.
+Este proyecto en Java Swing simula los principales algoritmos de planificación de CPU utilizados en sistemas operativos.
+Permite visualizar el comportamiento de los procesos en ejecución, mostrando su orden de llegada, tiempo de ráfaga, tiempo de espera y finalización.
+
+## 🚀 Características principales
+
+Simulación visual mediante interfaz gráfica.
+
+Implementa los siguientes algoritmos de planificación:
+
+FCFS (First Come, First Served)
+
+SJF (Shortest Job First)
+
+SRTF (Shortest Remaining Time First)
+
+RR (Round Robin)
+
+Muestra resultados detallados: tiempo de espera, de retorno y promedio.
+
+Permite ingresar procesos manualmente o generar ejemplos de forma aleatoria.
+
+Simulación paso a paso o automática.
 
 ## 📦 Estructura del Proyecto
 
@@ -14,12 +34,22 @@ según distintos algoritmos de planificación.
   - `PlanificadorRR.java`
 - `VentanaPrincipal.java`: Interfaz gráfica que muestra el estado de la simulación.
 
-## ⚙️ Algoritmos Soportados
+## 🧩 Algoritmos implementados
+⚙️ FCFS (First Come, First Served)
 
-- **FCFS** (First Come First Served)
-- **SJF** (Shortest Job First)
-- **SRTF** (Shortest Remaining Time First)
-- **Round Robin** (con quantum configurable)
+Ejecuta los procesos en el orden de llegada, sin interrupciones.
+
+⚙️ SJF (Shortest Job First)
+
+Selecciona el proceso con el menor tiempo de ráfaga.
+
+⚙️ SRTF (Shortest Remaining Time First)
+
+Versión preemptiva del SJF: el proceso en ejecución puede ser interrumpido si llega otro con menor ráfaga restante.
+
+⚙️ RR (Round Robin)
+
+Asigna a cada proceso un cuanto de tiempo (quantum) y los ejecuta cíclicamente hasta finalizar.
 
 ## 🚀 Cómo Ejecutar
 
@@ -30,7 +60,7 @@ según distintos algoritmos de planificación.
 3. Asegúrate de tener Java instalado (JDK 8 o superior).
 4. Ejecuta la clase que contiene el método main, normalmente en VentanaPrincipal.java.
    
-🧠 Funcionamiento del Simulador
+## 🧠 Funcionamiento del Simulador
 - Cada unidad de tiempo es simulada con un javax.swing.Timer.
 - Los procesos se agregan a una lista de entrada y se mueven a la cola de listos según su tiempo de llegada.
 - El planificador selecciona el siguiente proceso a ejecutar.
@@ -40,22 +70,25 @@ según distintos algoritmos de planificación.
 - Historial de procesos terminados
 - Tiempo actual
 
-📌 Requisitos
+## 📌 Requisitos
 - Java JDK 8+
 - IDE con soporte para Swing
 - Extensión de Java para VS Code (si usas VS Code)
 
-  Ejemplos de Simulación:
-  FCFS
+## 📊 Ejemplos de Simulación:
+  ### FCFS
   ![logo](https://github.com/DavidOro07/simulador_proceso/blob/9d9ea328fbcd3dfc9ca3514dddec2b4b87307008/fotos/FCFS0.jpeg)
   ![logo](https://github.com/DavidOro07/simulador_proceso/blob/9d9ea328fbcd3dfc9ca3514dddec2b4b87307008/fotos/FCFS.jpeg)
   ![logo](https://github.com/DavidOro07/simulador_proceso/blob/9d9ea328fbcd3dfc9ca3514dddec2b4b87307008/fotos/FCFS2.jpeg)
   ![logo](https://github.com/DavidOro07/simulador_proceso/blob/9d9ea328fbcd3dfc9ca3514dddec2b4b87307008/fotos/FCFS3.jpeg)
 
-  SRTF
+  ### SJF
+  
+
+  ### SRTF
   ![logo](https://github.com/DavidOro07/simulador_proceso/blob/8fa34c7f0c3e492427b7013c6abe6faee071da3b/fotos/SRTF.jpeg)
 
-  RR
+  ### RR
   ![logo](https://github.com/DavidOro07/simulador_proceso/blob/8fa34c7f0c3e492427b7013c6abe6faee071da3b/fotos/RR.jpeg)
   
 Contribuidores:
