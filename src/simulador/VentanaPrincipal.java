@@ -26,6 +26,8 @@ public class VentanaPrincipal extends JFrame {
     private final JPanel panelColaWrapper = new JPanel(new CardLayout());
     // Panel de barras resumidas para RR (nombre + progreso)
     private final JPanel rrBarPanel = new JPanel();
+    // Panel de línea de tiempo (secuencia de ejecución p1-p2-p3...)
+    private final JPanel timelinePanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 4, 4));
 
     private final DefaultTableModel modeloHistorial = new DefaultTableModel(new String[]{"PID", "Nombre", "CPU", "Llegada", "FinishTime"}, 0);
     private final JTable tablaHistorial = new JTable(modeloHistorial);
@@ -112,7 +114,7 @@ public class VentanaPrincipal extends JFrame {
         panelMetricas.add(lblPromedioIS, BorderLayout.SOUTH);
         panelMetricas.setBorder(BorderFactory.createTitledBorder("Tabla de eficiencia"));
 
-    JPanel tablas = new JPanel(new GridLayout(3, 1, 6, 6));
+    JPanel tablas = new JPanel(new GridLayout(4, 1, 6, 6));
     // envolver las vistas de cola en un CardLayout para alternar entre NORMAL y RR
     panelColaWrapper.add(new JScrollPane(tablaCola), "NORMAL");
     // crear vista compuesta para RR: tabla + barras resumen
@@ -127,6 +129,12 @@ public class VentanaPrincipal extends JFrame {
     panelColaWrapper.add(rrView, "RR");
     tablas.add(panelColaWrapper);
     tablas.add(new JScrollPane(tablaHistorial));
+    // timeline (secuencia compacta horizontal)
+    timelinePanel.setBackground(new Color(245, 245, 250));
+    timelinePanel.setBorder(BorderFactory.createTitledBorder("Secuencia de ejecución"));
+    JScrollPane timelineScroll = new JScrollPane(timelinePanel, JScrollPane.VERTICAL_SCROLLBAR_NEVER, JScrollPane.HORIZONTAL_SCROLLBAR_AS_NEEDED);
+    timelineScroll.setPreferredSize(new Dimension(100, 40));
+    tablas.add(timelineScroll);
     tablas.add(panelMetricas);
 
         panelCenter.add(tablas, BorderLayout.CENTER);
@@ -527,6 +535,39 @@ public class VentanaPrincipal extends JFrame {
         rrBarPanel.removeAll();
         rrBarPanel.revalidate();
         rrBarPanel.repaint();
+    }
+
+    // Agrega un snapshot de ejecución a la secuencia (p1, p2, ...). Llamado cada unidad ejecutada.
+    public void agregarEjecucionSnapshot(Proceso p) {
+        if (p == null) return;
+        SwingUtilities.invokeLater(() -> {
+            String texto = String.format("p%d", p.getPid());
+            JLabel box = new JLabel(texto);
+            box.setOpaque(true);
+            // color determinístico por PID
+            int hue = (p.getPid() * 37) % 360;
+            Color bg = Color.getHSBColor(hue / 360f, 0.45f, 0.85f);
+            box.setBackground(bg);
+            box.setForeground(Color.DARK_GRAY);
+            box.setBorder(BorderFactory.createEmptyBorder(4, 8, 4, 8));
+            box.setFont(new Font("SansSerif", Font.PLAIN, 11));
+            timelinePanel.add(box);
+            timelinePanel.revalidate();
+            timelinePanel.repaint();
+            // desplazarse hasta el final para mostrar el último elemento
+            if (timelinePanel.getParent() instanceof JViewport) {
+                Rectangle r = box.getBounds();
+                timelinePanel.scrollRectToVisible(r);
+            }
+        });
+    }
+
+    public void limpiarTimeline() {
+        SwingUtilities.invokeLater(() -> {
+            timelinePanel.removeAll();
+            timelinePanel.revalidate();
+            timelinePanel.repaint();
+        });
     }
 
     public void actualizarTiempo(int tiempo) {

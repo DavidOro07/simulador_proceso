@@ -87,6 +87,7 @@ public class Simulador {
         ventana.refrescarTablaCola(new ArrayList<>());
         ventana.actualizarTiempo(tiempo);
         ventana.reiniciarTablas();
+        ventana.limpiarTimeline();
     }
 
     private void tick() {
@@ -120,6 +121,8 @@ public class Simulador {
             int rem = enEjecucion.getTiempoRestante() - 1;
             enEjecucion.setTiempoRestante(Math.max(0, rem));
             ventana.actualizarProcesoEnCPU(enEjecucion);
+            // registrar snapshot visual de la unidad ejecutada (timeline)
+            ventana.agregarEjecucionSnapshot(enEjecucion);
 
             if (enEjecucion.getTiempoRestante() == 0) {
                 // Proceso termina
