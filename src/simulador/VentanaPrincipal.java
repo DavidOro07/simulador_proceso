@@ -20,6 +20,13 @@ public class VentanaPrincipal extends JFrame {
     private final DefaultTableModel modeloCola = new DefaultTableModel(new String[]{"PID", "Nombre", "CPU", "Llegada", "Restante"}, 0);
     private final JTable tablaCola = new JTable(modeloCola);
 
+    // Modelo y tabla específica para Round Robin (muestra quantum de cada proceso)
+    private final DefaultTableModel modeloColaRR = new DefaultTableModel(new String[]{"PID", "Nombre", "CPU", "Llegada", "Restante", "Quantum"}, 0);
+    private final JTable tablaColaRR = new JTable(modeloColaRR);
+    private final JPanel panelColaWrapper = new JPanel(new CardLayout());
+    // Panel de barras resumidas para RR (nombre + progreso)
+    private final JPanel rrBarPanel = new JPanel();
+
     private final DefaultTableModel modeloHistorial = new DefaultTableModel(new String[]{"PID", "Nombre", "CPU", "Llegada", "FinishTime"}, 0);
     private final JTable tablaHistorial = new JTable(modeloHistorial);
 
@@ -95,19 +102,32 @@ public class VentanaPrincipal extends JFrame {
         panelCenter.setBackground(new Color(255, 255, 255));
         panelCenter.setBorder(BorderFactory.createTitledBorder("Procesos"));
 
-        estiloTabla(tablaCola);
-        estiloTabla(tablaHistorial);
-        estiloTabla(tablaMetricas);
+    estiloTabla(tablaCola);
+    estiloTabla(tablaColaRR);
+    estiloTabla(tablaHistorial);
+    estiloTabla(tablaMetricas);
 
         JPanel panelMetricas = new JPanel(new BorderLayout());
         panelMetricas.add(new JScrollPane(tablaMetricas), BorderLayout.CENTER);
         panelMetricas.add(lblPromedioIS, BorderLayout.SOUTH);
         panelMetricas.setBorder(BorderFactory.createTitledBorder("Tabla de eficiencia"));
 
-        JPanel tablas = new JPanel(new GridLayout(3, 1, 6, 6));
-        tablas.add(new JScrollPane(tablaCola));
-        tablas.add(new JScrollPane(tablaHistorial));
-        tablas.add(panelMetricas);
+    JPanel tablas = new JPanel(new GridLayout(3, 1, 6, 6));
+    // envolver las vistas de cola en un CardLayout para alternar entre NORMAL y RR
+    panelColaWrapper.add(new JScrollPane(tablaCola), "NORMAL");
+    // crear vista compuesta para RR: tabla + barras resumen
+    JPanel rrView = new JPanel(new BorderLayout(4,4));
+    rrView.add(new JScrollPane(tablaColaRR), BorderLayout.CENTER);
+    rrBarPanel.setLayout(new BoxLayout(rrBarPanel, BoxLayout.Y_AXIS));
+    rrBarPanel.setBackground(new Color(250,250,245));
+    JScrollPane rrBarsScroll = new JScrollPane(rrBarPanel);
+    // barra más compacta: altura reducida para mostrar más procesos
+    rrBarsScroll.setPreferredSize(new Dimension(100, 80));
+    rrView.add(rrBarsScroll, BorderLayout.SOUTH);
+    panelColaWrapper.add(rrView, "RR");
+    tablas.add(panelColaWrapper);
+    tablas.add(new JScrollPane(tablaHistorial));
+    tablas.add(panelMetricas);
 
         panelCenter.add(tablas, BorderLayout.CENTER);
         add(panelCenter, BorderLayout.CENTER);
@@ -134,6 +154,13 @@ public class VentanaPrincipal extends JFrame {
         comboAlgoritmo.addActionListener(e -> {
             String alg = (String) comboAlgoritmo.getSelectedItem();
             spinnerQuantum.setEnabled("Round Robin".equals(alg));
+            // alternar vista de cola según algoritmo
+            CardLayout cl = (CardLayout) panelColaWrapper.getLayout();
+            if ("Round Robin".equals(alg)) {
+                cl.show(panelColaWrapper, "RR");
+            } else {
+                cl.show(panelColaWrapper, "NORMAL");
+            }
         });
         spinnerQuantum.setEnabled(false);
 
@@ -182,7 +209,8 @@ public class VentanaPrincipal extends JFrame {
 
             Proceso p = new Proceso(nombre, cpu, llegada, quantum);
             simulador.agregarProceso(p);
-            modeloCola.addRow(new Object[]{p.getPid(), p.getNombre(), p.getTiempoCPU(), p.getLlegada(), p.getTiempoRestante()});
+            // agregar fila según el algoritmo seleccionado (si es RR mostrará la columna Quantum)
+            agregarFilaCola(p);
 
             txtNombre.setText("");
         } catch (NumberFormatException ex) {
@@ -216,6 +244,7 @@ public class VentanaPrincipal extends JFrame {
     private void onReiniciar() {
         simulador.detener();
         modeloCola.setRowCount(0);
+        modeloColaRR.setRowCount(0);
         reiniciarTablas();
         lblCPU.setText("CPU libre");
         lblCPU.setForeground(new Color(34, 139, 34));
@@ -348,15 +377,26 @@ public class VentanaPrincipal extends JFrame {
     }
 
     public void agregarFilaCola(Proceso p) {
-        boolean existe = false;
-        for (int r = 0; r < modeloCola.getRowCount(); r++) {
-            if (((Integer) modeloCola.getValueAt(r, 0)) == p.getPid()) {
-                existe = true;
-                break;
+        String alg = (String) comboAlgoritmo.getSelectedItem();
+        if ("Round Robin".equals(alg)) {
+            boolean existe = false;
+            for (int r = 0; r < modeloColaRR.getRowCount(); r++) {
+                Integer v = (Integer) modeloColaRR.getValueAt(r, 0);
+                if (v != null && v == p.getPid()) { existe = true; break; }
+            }
+            if (!existe) {
+                modeloColaRR.addRow(new Object[]{p.getPid(), p.getNombre(), p.getTiempoCPU(), p.getLlegada(), p.getTiempoRestante(), p.getQuantum()});
+            }
+        } else {
+            boolean existe = false;
+            for (int r = 0; r < modeloCola.getRowCount(); r++) {
+                Integer v = (Integer) modeloCola.getValueAt(r, 0);
+                if (v != null && v == p.getPid()) { existe = true; break; }
+            }
+            if (!existe) {
+                modeloCola.addRow(new Object[]{p.getPid(), p.getNombre(), p.getTiempoCPU(), p.getLlegada(), p.getTiempoRestante()});
             }
         }
-        if (!existe)
-            modeloCola.addRow(new Object[]{p.getPid(), p.getNombre(), p.getTiempoCPU(), p.getLlegada(), p.getTiempoRestante()});
     }
 
     public void agregarFilaHistorial(Proceso p, int finishTime) {
@@ -404,15 +444,28 @@ public class VentanaPrincipal extends JFrame {
 
     public void refrescarTablaCola(java.util.List<Proceso> lista) {
         SwingUtilities.invokeLater(() -> {
-            modeloCola.setRowCount(0);
-            for (Proceso p : lista) {
-                modeloCola.addRow(new Object[]{p.getPid(), p.getNombre(), p.getTiempoCPU(), p.getLlegada(), p.getTiempoRestante()});
+            String alg = (String) comboAlgoritmo.getSelectedItem();
+            if ("Round Robin".equals(alg)) {
+                modeloColaRR.setRowCount(0);
+                for (Proceso p : lista) {
+                    modeloColaRR.addRow(new Object[]{p.getPid(), p.getNombre(), p.getTiempoCPU(), p.getLlegada(), p.getTiempoRestante(), p.getQuantum()});
+                }
+                // actualizar vista de barras resumidas para RR
+                updateRrBars(lista);
+            } else {
+                modeloCola.setRowCount(0);
+                for (Proceso p : lista) {
+                    modeloCola.addRow(new Object[]{p.getPid(), p.getNombre(), p.getTiempoCPU(), p.getLlegada(), p.getTiempoRestante()});
+                }
+                // limpiar barras RR cuando no es RR
+                clearRrBars();
             }
         });
     }
 
     // MÉTODO QUE FALTABA (lo añadimos)
     public void refrescarTablaColaSimRemove(int pid) {
+        // eliminar de la tabla normal
         for (int i = 0; i < modeloCola.getRowCount(); i++) {
             Integer val = (Integer) modeloCola.getValueAt(i, 0);
             if (val != null && val == pid) {
@@ -420,6 +473,60 @@ public class VentanaPrincipal extends JFrame {
                 break;
             }
         }
+        // eliminar de la tabla RR (si existe)
+        for (int i = 0; i < modeloColaRR.getRowCount(); i++) {
+            Integer val = (Integer) modeloColaRR.getValueAt(i, 0);
+            if (val != null && val == pid) {
+                modeloColaRR.removeRow(i);
+                break;
+            }
+        }
+    }
+
+    // Actualiza el panel de barras resumen para RR (nombre + progreso completado)
+    private void updateRrBars(java.util.List<Proceso> lista) {
+        rrBarPanel.removeAll();
+        if (lista == null || lista.isEmpty()) {
+            rrBarPanel.revalidate();
+            rrBarPanel.repaint();
+            return;
+        }
+
+        for (Proceso p : lista) {
+            // fila compacta para mostrar muchas entradas simultáneamente
+            JPanel row = new JPanel(new BorderLayout(4, 4));
+            row.setBackground(new Color(250,250,245));
+            String title = String.format("P%d - %s", p.getPid(), p.getNombre());
+            JLabel lbl = new JLabel(title);
+            lbl.setFont(new Font("SansSerif", Font.PLAIN, 11));
+            lbl.setBorder(BorderFactory.createEmptyBorder(1,4,1,4));
+
+            int total = Math.max(1, p.getTiempoCPU());
+            int completed = Math.max(0, total - p.getTiempoRestante());
+            JProgressBar bar = new JProgressBar(0, total);
+            bar.setValue(completed);
+            // barra más delgada
+            bar.setPreferredSize(new Dimension(100, 12));
+            bar.setMaximumSize(new Dimension(Integer.MAX_VALUE, 12));
+            bar.setStringPainted(true);
+            bar.setString(String.format("%d/%d", completed, total));
+
+            row.add(lbl, BorderLayout.WEST);
+            row.add(bar, BorderLayout.CENTER);
+            row.setBorder(BorderFactory.createEmptyBorder(1,1,1,1));
+            // forzar tamaño máximo para que filas queden compactas
+            row.setMaximumSize(new Dimension(Integer.MAX_VALUE, 20));
+            rrBarPanel.add(row);
+        }
+
+        rrBarPanel.revalidate();
+        rrBarPanel.repaint();
+    }
+
+    private void clearRrBars() {
+        rrBarPanel.removeAll();
+        rrBarPanel.revalidate();
+        rrBarPanel.repaint();
     }
 
     public void actualizarTiempo(int tiempo) {
